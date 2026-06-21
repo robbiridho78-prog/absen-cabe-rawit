@@ -15,9 +15,9 @@ let supabaseClient = null;
 
 // CREDENTIALS DATABASE
 const USERS = {
-    'admin': { password: 'admincaberawit', role: 'admin', label: 'Admin Utama' },
-    'guru': { password: 'gurucaberawit', role: 'guru', label: 'Ustadz/Ustadzah' },
-    'santri': { password: 'caberawitceria', role: 'santri', label: 'Wali Santri' }
+    'admin': { password: '354', role: 'admin', label: 'Admin Utama' },
+    'guru': { password: '313', role: 'guru', label: 'Ustadz/Ustadzah' },
+    'santri': { password: '123', role: 'santri', label: 'Wali Santri' }
 };
 
 // DEFAULT SEED DATA
