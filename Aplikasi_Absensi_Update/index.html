@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Pengajian Cabe Rawit</title>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="style.css?v=2">
+    <style>
+        /* Login Page Styling */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, var(--bg-app), #FFE3E8);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: var(--transition);
+        }
+        [data-theme="dark"] .login-overlay {
+            background: linear-gradient(135deg, #0F172A, #1E1B4B);
+        }
+        .login-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+        .login-logo {
+            font-size: 50px;
+            margin-bottom: 15px;
+        }
+        .login-title {
+            font-family: var(--font-heading);
+            font-size: 24px;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+        .login-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        /* Class list styles */
+        .class-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .class-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            position: relative;
+            transition: var(--transition);
+        }
+        .class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .class-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .class-name {
+            font-family: var(--font-heading);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .class-materi-box {
+            background: var(--bg-input);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            border-left: 4px solid var(--secondary);
+        }
+    </style>
+</head>
+<body data-theme="light">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="login-overlay">
+        <div class="login-card">
+            <div class="login-logo">🌟</div>
+            <h2 class="login-title">Cabe Rawit</h2>
+            <p class="login-subtitle">Silakan login untuk masuk ke aplikasi</p>
+            
+            <div class="form-group" style="text-align: left;">
+                <label class="form-label">Username</label>
+                <input type="text" id="login-username" class="input-control" placeholder="Masukkan username">
+            </div>
+            
+            <div class="form-group" style="text-align: left;">
+                <label class="form-label">Password</label>
+                <input type="password" id="login-password" class="input-control" placeholder="Masukkan password">
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btn-submit-login">
+                <i class="fa-solid fa-right-to-bracket"></i> Masuk Aplikasi
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toast-message">Pesan sukses disini</span>
+    </div>
+
+    <div class="app-container">
+        <!-- App Header Section -->
+        <header class="app-header">
+            <div class="brand-section">
+                <h1 class="brand-title">Cabe Rawit 🌟</h1>
+                <p class="brand-subtitle">Pencatatan Absensi & Prestasi Mengaji</p>
+            </div>
+            <div class="header-actions">
+                <!-- User Profile / Logout Button -->
+                <button class="icon-btn" id="logout-btn" title="Keluar / Logout" style="background: rgba(255, 255, 255, 0.25);">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+                <button class="icon-btn" id="theme-toggle" title="Ganti Tema">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+                <button class="icon-btn" id="db-settings-btn" title="Pengaturan Database (Supabase & Backup)">
+                    <i class="fa-solid fa-database"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- DASHBOARD TAB -->
+        <div id="tab-dashboard" class="tab-content active">
+            <!-- Mode Indicator -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:-8px; gap:8px;">
+                <div id="connection-indicator" style="font-size: 11px; font-weight:600; padding: 6px 12px; border-radius: var(--radius-sm); flex-grow:1; text-align:center;">
+                    <!-- Filled dynamically -->
+                </div>
+                <div id="role-indicator" style="font-size: 11px; font-weight:700; background:rgba(255,107,139,0.15); color:var(--primary); padding: 6px 12px; border-radius: var(--radius-sm); text-align:center;">
+                    Role: -
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-label">Hadir Hari Ini</span>
+                    <span class="stat-value" id="stats-today-present">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Total Santri</span>
+                    <span class="stat-value" id="stats-total-students">0</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-trophy" style="color: var(--warning)"></i> Leaderboard Bintang</h2>
+                <div class="leaderboard-list" id="leaderboard-container">
+                    <!-- Dynamic Leaderboard list -->
+                </div>
+            </div>
+        </div>
+
+        <!-- PRESENSI TAB -->
+        <div id="tab-presensi" class="tab-content">
+            <div class="card">
+                <div class="presensi-header">
+                    <h2 class="card-title" style="margin-bottom:0;"><i class="fa-solid fa-calendar-check" style="color: var(--success)"></i> Presensi Santri</h2>
+                    <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                        <select id="filter-presensi-class" class="input-control" style="width:auto; padding: 6px 12px;">
+                            <option value="all">Semua Kelas</option>
+                            <option value="Kelas Lambatan">Lambatan</option>
+                            <option value="Kelas Pramaja">Pramaja</option>
+                            <option value="Kelas Paud">Paud</option>
+                            <option value="Kelas Cabe Rawit">Cabe Rawit</option>
+                            <option value="Kelas Dewasa">Dewasa</option>
+                        </select>
+                        <input type="date" id="presensi-date" class="input-control" style="width:auto; padding: 6px 12px;">
+                    </div>
+                </div>
+                <div class="student-presensi-list" id="presensi-list-container">
+                    <!-- Dynamic list of students with attendance options -->
+                </div>
+            </div>
+        </div>
+
+        <!-- RUANG KELAS TAB -->
+        <div id="tab-kelas" class="tab-content">
+            <h2 style="font-family: var(--font-heading); font-size:20px; margin-bottom:12px;">
+                <i class="fa-solid fa-chalkboard-user" style="color: var(--primary)"></i> Ruang Kelas & Materi
+            </h2>
+            <div class="class-grid" id="class-list-container">
+                <!-- Dynamic classrooms with materials list -->
+            </div>
+        </div>
+
+        <!-- DATA SANTRI TAB -->
+        <div id="tab-santri" class="tab-content">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="font-family: var(--font-heading); font-size:20px;"><i class="fa-solid fa-users" style="color: var(--secondary)"></i> Daftar Santri</h2>
+                <button class="btn btn-primary btn-small" id="btn-add-santri-modal">
+                    <i class="fa-solid fa-plus"></i> Tambah Santri
+                </button>
+            </div>
+            
+            <div class="card">
+                <div style="display:flex; gap:8px; margin-bottom: 12px;">
+                    <input type="text" id="search-santri" class="input-control" placeholder="Cari nama santri..." style="flex-grow:1;">
+                    <select id="filter-santri-class" class="input-control" style="width:auto; max-width: 150px;">
+                        <option value="all">Semua Kelas</option>
+                        <option value="Kelas Lambatan">Lambatan</option>
+                        <option value="Kelas Pramaja">Pramaja</option>
+                        <option value="Kelas Paud">Paud</option>
+                        <option value="Kelas Cabe Rawit">Cabe Rawit</option>
+                        <option value="Kelas Dewasa">Dewasa</option>
+                    </select>
+                </div>
+                <div class="santri-list" id="santri-list-container">
+                    <!-- Dynamic list of students for CRUD -->
+                </div>
+            </div>
+        </div>
+
+        <!-- RIWAYAT TAB -->
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-file-invoice" style="color: var(--danger)"></i> Rekap & Laporan</h2>
+                
+                <div class="form-group">
+                    <label class="form-label" for="report-month">Pilih Bulan Rekap</label>
+                    <input type="month" id="report-month" class="input-control">
+                </div>
+
+                <div style="display:flex; gap:12px; margin-bottom: 20px;">
+                    <button class="btn btn-primary" id="btn-export-csv" style="flex-grow:1;">
+                        <i class="fa-solid fa-file-csv"></i> Ekspor CSV Laporan
+                    </button>
+                </div>
+
+                <div class="history-table-container">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Nama Santri</th>
+                                <th>Hadir</th>
+                                <th>Sakit</th>
+                                <th>Izin</th>
+                                <th>Alfa</th>
+                                <th>% Kehadiran</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-report-body">
+                            <!-- Dynamic report rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- NAVIGATION BAR -->
+        <nav class="navigation-bar" id="app-nav-bar">
+            <div class="nav-item active" data-tab="dashboard">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="nav-item" data-tab="presensi" id="nav-presensi">
+                <i class="fa-solid fa-calendar-day"></i>
+                <span>Presensi</span>
+            </div>
+            <div class="nav-item" data-tab="kelas">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                <span>Kelas</span>
+            </div>
+            <div class="nav-item" data-tab="santri" id="nav-santri">
+                <i class="fa-solid fa-user-group"></i>
+                <span>Santri</span>
+            </div>
+            <div class="nav-item" data-tab="history">
+                <i class="fa-solid fa-file-invoice"></i>
+                <span>Laporan</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- MODAL: TAMBAH/EDIT SANTRI -->
+    <div class="modal-overlay" id="modal-santri">
+        <div class="modal">
+            <div class="modal-header">
+                <span id="modal-santri-title">Tambah Santri Baru</span>
+                <button class="modal-close" id="modal-santri-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="santri-id-edit">
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" id="santri-name" class="input-control" placeholder="Nama Lengkap Anak">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Panggilan / Julukan</label>
+                    <input type="text" id="santri-nickname" class="input-control" placeholder="Panggilan">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Pilih Ruang Kelas</label>
+                    <select id="santri-class" class="input-control">
+                        <option value="Kelas Lambatan">Kelas Lambatan</option>
+                        <option value="Kelas Pramaja">Kelas Pramaja</option>
+                        <option value="Kelas Paud">Kelas Paud</option>
+                        <option value="Kelas Cabe Rawit" selected>Kelas Cabe Rawit</option>
+                        <option value="Kelas Dewasa">Kelas Dewasa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jenis Kelamin</label>
+                    <select id="santri-gender" class="input-control">
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Orang Tua / Wali</label>
+                    <input type="text" id="santri-parent" class="input-control" placeholder="Nama Ibu/Ayah">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">No. WA Orang Tua</label>
+                    <input type="tel" id="santri-phone" class="input-control" placeholder="Contoh: 0812xxxxxxxx">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" id="modal-santri-cancel">Batal</button>
+                <button class="btn btn-primary btn-small" id="modal-santri-save">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT MATERI KELAS -->
+    <div class="modal-overlay" id="modal-edit-materi">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Ubah Materi Ruang Kelas</span>
+                <button class="modal-close" id="modal-materi-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-class-id">
+                <p style="margin-bottom:12px; font-weight:600;" id="edit-class-name">Nama Ruang Kelas</p>
+                <div class="form-group">
+                    <label class="form-label">Materi Pembelajaran / Kurikulum</label>
+                    <textarea id="edit-class-materi" class="input-control" rows="5" placeholder="Tuliskan materi pembelajaran di kelas ini..." style="resize:vertical;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nama Guru</label>
+                    <input type="text" id="edit-class-guru" class="input-control" placeholder="Nama Guru Pengajar">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" id="modal-materi-cancel">Batal</button>
+                <button class="btn btn-primary btn-small" id="modal-materi-save">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DETAIL PENGAJIAN / PROGRESS (IQRO & HAFALAN) -->
+    <div class="modal-overlay" id="modal-progress">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Catat Perkembangan Mengaji</span>
+                <button class="modal-close" id="modal-progress-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="progress-student-id">
+                <p style="margin-bottom:12px; font-weight:600;" id="progress-student-name">Nama Anak</p>
+                
+                <div class="form-group">
+                    <label class="form-label">Status Mengaji (Iqro / Al-Qur'an)</label>
+                    <input type="text" id="progress-iqro" class="input-control" placeholder="Contoh: Iqro 3 Halaman 12, atau Al-Baqarah 1-10">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hafalan Surat Pendek / Doa</label>
+                    <input type="text" id="progress-hafalan" class="input-control" placeholder="Contoh: An-Nas (Lancar), Doa Makan">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" id="modal-progress-cancel">Batal</button>
+                <button class="btn btn-primary btn-small" id="modal-progress-save">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DATABASE SETTINGS (SUPABASE & BACKUP) -->
+    <div class="modal-overlay" id="modal-db-settings">
+        <div class="modal" style="max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <span>Pengaturan Database & Cadangan</span>
+                <button class="modal-close" id="modal-db-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Section 1: Supabase Connection -->
+                <h3 style="font-size:15px; margin-bottom:10px; font-family: var(--font-heading); display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-cloud" style="color:var(--secondary)"></i> Database Online (Supabase)
+                </h3>
+                <div class="form-group">
+                    <label class="form-label">Mode Penyimpanan</label>
+                    <select id="storage-mode" class="input-control">
+                        <option value="local">Offline (Memori Browser Lokal)</option>
+                        <option value="supabase">Online (Sinkronisasi Supabase Cloud)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Supabase URL</label>
+                    <input type="text" id="supabase-url" class="input-control" placeholder="https://xxxxxx.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Supabase Anon Key</label>
+                    <input type="password" id="supabase-key" class="input-control" placeholder="Masukkan Anon API Key">
+                </div>
+                <button class="btn btn-primary btn-block btn-small" id="btn-save-supabase" style="margin-bottom:20px;">
+                    <i class="fa-solid fa-circle-check"></i> Hubungkan ke Supabase
+                </button>
+
+                <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 16px 0;">
+
+                <!-- Section 2: Local Backup & Restore -->
+                <h3 style="font-size:15px; margin-bottom:10px; font-family: var(--font-heading); display:flex; align-items:center; gap:6px;">
+                    <i class="fa-solid fa-file-export" style="color:var(--success)"></i> Cadangan Offline (Local Backup)
+                </h3>
+                <p style="font-size:12px; margin-bottom:12px; color:var(--text-muted);">
+                    Gunakan ini jika menggunakan mode offline atau ingin membackup database lokal Anda.
+                </p>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn btn-success btn-block btn-small" id="btn-export-backup">
+                        <i class="fa-solid fa-download"></i> Unduh File Backup (.json)
+                    </button>
+                    <label class="form-label" style="font-size:12px; margin-top:6px;">Pulihkan Data dari File Backup</label>
+                    <input type="file" id="import-backup-file" accept=".json" class="input-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" id="modal-db-close-btn">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logika JavaScript -->
+    <script src="app.js?v=2"></script>
+</body>
+</html>
