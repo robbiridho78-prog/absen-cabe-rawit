@@ -55,6 +55,45 @@
             color: var(--text-muted);
             margin-bottom: 24px;
         }
+        /* Class list styles */
+        .class-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .class-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            position: relative;
+            transition: var(--transition);
+        }
+        .class-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .class-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .class-name {
+            font-family: var(--font-heading);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .class-materi-box {
+            background: var(--bg-input);
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            border-left: 4px solid var(--secondary);
+        }
     </style>
 </head>
 <body data-theme="light">
@@ -145,13 +184,31 @@
             <div class="card">
                 <div class="presensi-header">
                     <h2 class="card-title" style="margin-bottom:0;"><i class="fa-solid fa-calendar-check" style="color: var(--success)"></i> Presensi Santri</h2>
-                    <div class="date-picker-wrapper">
+                    <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                        <select id="filter-presensi-class" class="input-control" style="width:auto; padding: 6px 12px;">
+                            <option value="all">Semua Kelas</option>
+                            <option value="Kelas Lambatan">Lambatan</option>
+                            <option value="Kelas Pramaja">Pramaja</option>
+                            <option value="Kelas Paud">Paud</option>
+                            <option value="Kelas Cabe Rawit">Cabe Rawit</option>
+                            <option value="Kelas Dewasa">Dewasa</option>
+                        </select>
                         <input type="date" id="presensi-date" class="input-control" style="width:auto; padding: 6px 12px;">
                     </div>
                 </div>
                 <div class="student-presensi-list" id="presensi-list-container">
                     <!-- Dynamic list of students with attendance options -->
                 </div>
+            </div>
+        </div>
+
+        <!-- RUANG KELAS TAB -->
+        <div id="tab-kelas" class="tab-content">
+            <h2 style="font-family: var(--font-heading); font-size:20px; margin-bottom:12px;">
+                <i class="fa-solid fa-chalkboard-user" style="color: var(--primary)"></i> Ruang Kelas & Materi
+            </h2>
+            <div class="class-grid" id="class-list-container">
+                <!-- Dynamic classrooms with materials list -->
             </div>
         </div>
 
@@ -165,8 +222,16 @@
             </div>
             
             <div class="card">
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <input type="text" id="search-santri" class="input-control" placeholder="Cari nama santri...">
+                <div style="display:flex; gap:8px; margin-bottom: 12px;">
+                    <input type="text" id="search-santri" class="input-control" placeholder="Cari nama santri..." style="flex-grow:1;">
+                    <select id="filter-santri-class" class="input-control" style="width:auto; max-width: 150px;">
+                        <option value="all">Semua Kelas</option>
+                        <option value="Kelas Lambatan">Lambatan</option>
+                        <option value="Kelas Pramaja">Pramaja</option>
+                        <option value="Kelas Paud">Paud</option>
+                        <option value="Kelas Cabe Rawit">Cabe Rawit</option>
+                        <option value="Kelas Dewasa">Dewasa</option>
+                    </select>
                 </div>
                 <div class="santri-list" id="santri-list-container">
                     <!-- Dynamic list of students for CRUD -->
@@ -220,6 +285,10 @@
                 <i class="fa-solid fa-calendar-day"></i>
                 <span>Presensi</span>
             </div>
+            <div class="nav-item" data-tab="kelas">
+                <i class="fa-solid fa-chalkboard-user"></i>
+                <span>Kelas</span>
+            </div>
             <div class="nav-item" data-tab="santri" id="nav-santri">
                 <i class="fa-solid fa-user-group"></i>
                 <span>Santri</span>
@@ -249,6 +318,16 @@
                     <input type="text" id="santri-nickname" class="input-control" placeholder="Panggilan">
                 </div>
                 <div class="form-group">
+                    <label class="form-label">Pilih Ruang Kelas</label>
+                    <select id="santri-class" class="input-control">
+                        <option value="Kelas Lambatan">Kelas Lambatan</option>
+                        <option value="Kelas Pramaja">Kelas Pramaja</option>
+                        <option value="Kelas Paud">Kelas Paud</option>
+                        <option value="Kelas Cabe Rawit" selected>Kelas Cabe Rawit</option>
+                        <option value="Kelas Dewasa">Kelas Dewasa</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Jenis Kelamin</label>
                     <select id="santri-gender" class="input-control">
                         <option value="Laki-laki">Laki-laki</option>
@@ -267,6 +346,28 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-small" id="modal-santri-cancel">Batal</button>
                 <button class="btn btn-primary btn-small" id="modal-santri-save">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT MATERI KELAS -->
+    <div class="modal-overlay" id="modal-edit-materi">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Ubah Materi Ruang Kelas</span>
+                <button class="modal-close" id="modal-materi-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-class-id">
+                <p style="margin-bottom:12px; font-weight:600;" id="edit-class-name">Nama Ruang Kelas</p>
+                <div class="form-group">
+                    <label class="form-label">Materi Pembelajaran / Kurikulum</label>
+                    <textarea id="edit-class-materi" class="input-control" rows="5" placeholder="Tuliskan materi pembelajaran di kelas ini..." style="resize:vertical;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" id="modal-materi-cancel">Batal</button>
+                <button class="btn btn-primary btn-small" id="modal-materi-save">Simpan</button>
             </div>
         </div>
     </div>

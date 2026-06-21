@@ -1,6 +1,13 @@
 // STATE MANAGEMENT
 let state = {
     students: [],
+    classrooms: [
+        { id: 'lambatan', name: 'Kelas Lambatan', materi: 'Tajwid dasar, bacaan tartil perlahan, makhorijul huruf.' },
+        { id: 'pramaja', name: 'Kelas Pramaja', materi: 'Hafalan surat-surat Juz 30, fiqih ibadah dasar, aqidah akhlak.' },
+        { id: 'paud', name: 'Kelas Paud', materi: 'Pengenalan huruf hijaiyah, mewarnai gambar islami, doa harian pendek.' },
+        { id: 'caberawit', name: 'Kelas Cabe Rawit', materi: 'Bacaan jilid Iqro, adab harian, hapalan doa sholat.' },
+        { id: 'dewasa', name: 'Kelas Dewasa', materi: 'Kajian tafsir Al-Qur\'an, fiqih muamalah, tajwid lanjutan.' }
+    ],
     attendance: {}, // format: { 'YYYY-MM-DD': { studentId: 'H'|'S'|'I'|'A' } }
     theme: 'light',
     currentTab: 'dashboard',
@@ -20,18 +27,19 @@ const USERS = {
     'santri': { password: '123', role: 'santri', label: 'Wali Santri' }
 };
 
-// DEFAULT SEED DATA
+// DEFAULT SEED DATA (With classroom fields)
 const sampleStudents = [
-    { id: '1', name: 'Muhammad Al-Fatih', nickname: 'Fatih', gender: 'Laki-laki', parentName: 'Ahmad', phone: '081234567890', stars: 12, iqroProgress: 'Iqro 3 Hal. 10', hafalanProgress: 'An-Nas & Al-Falaq' },
-    { id: '2', name: 'Aisyah Humaira', nickname: 'Aisyah', gender: 'Perempuan', parentName: 'Siti', phone: '081234567891', stars: 15, iqroProgress: 'Iqro 4 Hal. 5', hafalanProgress: 'Al-Ikhlas (Lancar)' },
-    { id: '3', name: 'Ali bin Abi Thalib', nickname: 'Ali', gender: 'Laki-laki', parentName: 'Fatimah', phone: '081234567892', stars: 9, iqroProgress: 'Iqro 2 Hal. 15', hafalanProgress: 'Al-Lahab' },
-    { id: '4', name: 'Khadijah Al-Kubra', nickname: 'Dija', gender: 'Perempuan', parentName: 'Aminah', phone: '081234567893', stars: 18, iqroProgress: 'Al-Baqarah Ayat 1-10', hafalanProgress: 'Al-Kafirun' },
-    { id: '5', name: 'Zaid bin Haritsah', nickname: 'Zaid', gender: 'Laki-laki', parentName: 'Usamah', phone: '081234567894', stars: 10, iqroProgress: 'Iqro 5 Hal. 20', hafalanProgress: 'Al-Maun' }
+    { id: '1', name: 'Muhammad Al-Fatih', nickname: 'Fatih', class: 'Kelas Cabe Rawit', gender: 'Laki-laki', parentName: 'Ahmad', phone: '081234567890', stars: 12, iqroProgress: 'Iqro 3 Hal. 10', hafalanProgress: 'An-Nas & Al-Falaq' },
+    { id: '2', name: 'Aisyah Humaira', nickname: 'Aisyah', class: 'Kelas Paud', gender: 'Perempuan', parentName: 'Siti', phone: '081234567891', stars: 15, iqroProgress: 'Iqro 4 Hal. 5', hafalanProgress: 'Al-Ikhlas (Lancar)' },
+    { id: '3', name: 'Ali bin Abi Thalib', nickname: 'Ali', class: 'Kelas Lambatan', gender: 'Laki-laki', parentName: 'Fatimah', phone: '081234567892', stars: 9, iqroProgress: 'Iqro 2 Hal. 15', hafalanProgress: 'Al-Lahab' },
+    { id: '4', name: 'Khadijah Al-Kubra', nickname: 'Dija', class: 'Kelas Pramaja', gender: 'Perempuan', parentName: 'Aminah', phone: '081234567893', stars: 18, iqroProgress: 'Al-Baqarah Ayat 1-10', hafalanProgress: 'Al-Kafirun' },
+    { id: '5', name: 'Zaid bin Haritsah', nickname: 'Zaid', class: 'Kelas Dewasa', gender: 'Laki-laki', parentName: 'Usamah', phone: '081234567894', stars: 10, iqroProgress: 'Iqro 5 Hal. 20', hafalanProgress: 'Al-Maun' }
 ];
 
 // Initialize LocalStorage Database & Supabase connection
 async function initStorage() {
     const localStudents = localStorage.getItem('caberawit_students');
+    const localClassrooms = localStorage.getItem('caberawit_classrooms');
     const localAttendance = localStorage.getItem('caberawit_attendance');
     const localTheme = localStorage.getItem('caberawit_theme');
     
@@ -52,6 +60,12 @@ async function initStorage() {
     } else {
         state.students = sampleStudents;
         localStorage.setItem('caberawit_students', JSON.stringify(sampleStudents));
+    }
+
+    if (localClassrooms) {
+        state.classrooms = JSON.parse(localClassrooms);
+    } else {
+        localStorage.setItem('caberawit_classrooms', JSON.stringify(state.classrooms));
     }
 
     if (localAttendance) {
@@ -95,13 +109,10 @@ function applyRolePermissions() {
         dbBtn.style.display = 'none';
         navPresensi.style.display = 'none';
         navSantri.style.display = 'none';
-        
-        // Force tab to dashboard
         switchTab('dashboard');
     } else if (state.userRole === 'guru') {
         // Guru (Can take attendance, but cannot edit settings or edit student list details)
         dbBtn.style.display = 'none';
-        // Can access Santri but hide "Tambah Santri" button
         const addBtn = document.getElementById('btn-add-santri-modal');
         if (addBtn) addBtn.style.display = 'none';
     } else if (state.userRole === 'admin') {
@@ -179,6 +190,7 @@ async function loadAllData() {
                 id: s.id,
                 name: s.name,
                 nickname: s.nickname,
+                class: s.class || 'Kelas Cabe Rawit',
                 gender: s.gender,
                 parentName: s.parent_name,
                 phone: s.phone,
@@ -187,16 +199,25 @@ async function loadAllData() {
                 hafalanProgress: s.hafalan_progress
             }));
 
-            // Sync to local storage for quick offline access
+            // Sync to local storage
             localStorage.setItem('caberawit_students', JSON.stringify(state.students));
 
-            // Load attendance for current selected date or entire database
+            // Load classrooms
+            const { data: classroomsData, error: classErr } = await supabaseClient
+                .from('classrooms')
+                .select('*');
+            
+            if (!classErr && classroomsData.length > 0) {
+                state.classrooms = classroomsData;
+                localStorage.setItem('caberawit_classrooms', JSON.stringify(state.classrooms));
+            }
+
+            // Load attendance
             const { data: attendData, error: attendErr } = await supabaseClient
                 .from('attendance')
                 .select('*');
             if (attendErr) throw attendErr;
 
-            // Reconstruct state.attendance
             state.attendance = {};
             attendData.forEach(row => {
                 if (!state.attendance[row.date]) {
@@ -213,9 +234,13 @@ async function loadAllData() {
     }
 }
 
-// SAVE STATE LOCALSTORAGE HELPER
+// SAVE STATE LOCALSTORAGE HELPERS
 function saveLocalStudents() {
     localStorage.setItem('caberawit_students', JSON.stringify(state.students));
+}
+
+function saveLocalClassrooms() {
+    localStorage.setItem('caberawit_classrooms', JSON.stringify(state.classrooms));
 }
 
 function saveLocalAttendance() {
@@ -241,9 +266,9 @@ function createStarExplosion(e) {
         star.style.left = `${e.clientX}px`;
         star.style.top = `${e.clientY}px`;
         const angle = Math.random() * Math.PI * 2;
-        const velocity = 50 + Math.random() * 80;
-        const dx = Math.cos(angle) * velocity;
-        const dy = Math.sin(angle) * velocity - 100;
+        const Math_vel = 50 + Math.random() * 80;
+        const dx = Math.cos(angle) * Math_vel;
+        const dy = Math.sin(angle) * Math_vel - 100;
         star.style.setProperty('--dx', `${dx}px`);
         star.style.setProperty('--dy', `${dy}px`);
         document.body.appendChild(star);
@@ -293,7 +318,6 @@ function setupTheme() {
 
 // LOGIN & LOGOUT HANDLERS
 function setupAuth() {
-    // Login Submission
     document.getElementById('btn-submit-login').addEventListener('click', () => {
         const usernameInput = document.getElementById('login-username').value.trim();
         const passwordInput = document.getElementById('login-password').value.trim();
@@ -303,11 +327,8 @@ function setupAuth() {
             state.userRole = user.role;
             sessionStorage.setItem('caberawit_role', user.role);
             
-            // Clear inputs
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
-            
-            // Hide login screen
             document.getElementById('login-screen').style.display = 'none';
             
             applyRolePermissions();
@@ -318,14 +339,12 @@ function setupAuth() {
         }
     });
 
-    // Enter Key Login support
     document.getElementById('login-password').addEventListener('keyup', (e) => {
         if (e.key === 'Enter') {
             document.getElementById('btn-submit-login').click();
         }
     });
 
-    // Logout
     document.getElementById('logout-btn').addEventListener('click', () => {
         if (confirm('Apakah Anda yakin ingin keluar dari aplikasi?')) {
             sessionStorage.removeItem('caberawit_role');
@@ -343,6 +362,8 @@ function renderView(tabName) {
         renderLeaderboard();
     } else if (tabName === 'presensi') {
         renderPresensiList();
+    } else if (tabName === 'kelas') {
+        renderClassroomList();
     } else if (tabName === 'santri') {
         renderSantriList();
     } else if (tabName === 'history') {
@@ -364,11 +385,7 @@ function renderLeaderboard() {
     
     const sorted = [...state.students].sort((a, b) => b.stars - a.stars);
     if (sorted.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-face-smile"></i>
-                <p>Belum ada santri terdaftar.</p>
-            </div>`;
+        container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-face-smile"></i><p>Belum ada santri terdaftar.</p></div>`;
         return;
     }
 
@@ -380,7 +397,7 @@ function renderLeaderboard() {
                 <div class="rank-badge">${index + 1}</div>
                 <div>
                     <div style="font-weight:600;">${student.name}</div>
-                    <div style="font-size:12px; color:var(--text-muted);">${student.iqroProgress || 'Belum mencatat Iqro'}</div>
+                    <div style="font-size:12px; color:var(--text-muted);">${student.class} • ${student.iqroProgress || 'Belum mencatat Iqro'}</div>
                 </div>
             </div>
             <div class="star-count">
@@ -399,17 +416,19 @@ function renderPresensiList() {
     
     const currentDate = state.selectedDate;
     const dateAttendance = state.attendance[currentDate] || {};
+    const filterClass = document.getElementById('filter-presensi-class').value;
+
+    const filteredStudents = state.students.filter(student => {
+        if (filterClass === 'all') return true;
+        return student.class === filterClass;
+    });
     
-    if (state.students.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fa-solid fa-user-slash"></i>
-                <p>Silakan tambahkan data santri di tab 'Santri' terlebih dahulu.</p>
-            </div>`;
+    if (filteredStudents.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-user-slash"></i><p>Tidak ada santri di kelas ini.</p></div>`;
         return;
     }
 
-    state.students.forEach(student => {
+    filteredStudents.forEach(student => {
         const studentStatus = dateAttendance[student.id] || '';
         
         const card = document.createElement('div');
@@ -418,7 +437,7 @@ function renderPresensiList() {
             <div class="student-row-header">
                 <div class="student-identity">
                     <span class="student-name">${student.name}</span>
-                    <span class="student-meta">${student.gender} • ${student.nickname}</span>
+                    <span class="student-meta">${student.class} • ${student.nickname}</span>
                 </div>
                 <div class="star-count" style="font-size: 14px;">
                     <i class="fa-solid fa-star"></i> <span id="star-val-${student.id}">${student.stars}</span>
@@ -481,24 +500,17 @@ async function toggleAttendance(radioInput, studentId, status) {
     saveLocalAttendance();
     updateDashboardStats();
 
-    // Supabase push
     if (supabaseClient) {
         try {
             if (isRemove) {
-                await supabaseClient
-                    .from('attendance')
-                    .delete()
-                    .match({ date: date, student_id: studentId });
+                await supabaseClient.from('attendance').delete().match({ date: date, student_id: studentId });
                 showToast(`Presensi dibatalkan`);
             } else {
-                await supabaseClient
-                    .from('attendance')
-                    .upsert({ date: date, student_id: studentId, status: status });
+                await supabaseClient.from('attendance').upsert({ date: date, student_id: studentId, status: status });
                 showToast(`Presensi berhasil disimpan`);
             }
         } catch (err) {
-            console.error("Gagal menyimpan ke Supabase:", err);
-            showToast("Offline: Tersimpan lokal.");
+            console.error(err);
         }
     } else {
         showToast(isRemove ? `Presensi dibatalkan` : `Presensi berhasil disimpan`);
@@ -519,28 +531,72 @@ async function addStarInstant(event, studentId) {
 
         if (supabaseClient) {
             try {
-                await supabaseClient
-                    .from('students')
-                    .update({ stars: state.students[idx].stars })
-                    .eq('id', studentId);
+                await supabaseClient.from('students').update({ stars: state.students[idx].stars }).eq('id', studentId);
             } catch (err) {
-                console.error("Gagal sinkron bintang ke Supabase:", err);
+                console.error(err);
             }
         }
     }
 }
 
-// VIEW 3: DATA SANTRI CRUD
+// VIEW 3: RUANG KELAS & MATERI
+function renderClassroomList() {
+    const container = document.getElementById('class-list-container');
+    container.innerHTML = '';
+
+    state.classrooms.forEach(classroom => {
+        // Count kids in this class
+        const studentCount = state.students.filter(s => s.class === classroom.name).length;
+        
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        
+        // Show edit button for admin only
+        const editBtnHtml = state.userRole === 'admin' ? `
+            <button class="btn btn-secondary btn-small" onclick="openEditMateriModal('${classroom.id}')">
+                <i class="fa-solid fa-pen"></i> Edit Materi
+            </button>
+        ` : '';
+
+        card.innerHTML = `
+            <div class="class-card-header">
+                <span class="class-name">${classroom.name} <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">(${studentCount} Santri)</span></span>
+                ${editBtnHtml}
+            </div>
+            <div class="class-materi-box">
+                ${classroom.materi || 'Belum ada materi terdaftar.'}
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function openEditMateriModal(classId) {
+    if (state.userRole !== 'admin') return;
+    const classroom = state.classrooms.find(c => c.id === classId);
+    if (!classroom) return;
+
+    document.getElementById('edit-class-id').value = classroom.id;
+    document.getElementById('edit-class-name').innerText = `✏️ Edit Materi: ${classroom.name}`;
+    document.getElementById('edit-class-materi').value = classroom.materi || '';
+    
+    document.getElementById('modal-edit-materi').classList.add('active');
+}
+
+// VIEW 4: DATA SANTRI CRUD
 function renderSantriList() {
     const container = document.getElementById('santri-list-container');
     container.innerHTML = '';
     const query = document.getElementById('search-santri').value.toLowerCase();
+    const filterClass = document.getElementById('filter-santri-class').value;
     
-    const filtered = state.students.filter(s => 
-        s.name.toLowerCase().includes(query) || 
-        s.nickname.toLowerCase().includes(query) ||
-        s.parentName.toLowerCase().includes(query)
-    );
+    const filtered = state.students.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(query) || 
+                              s.nickname.toLowerCase().includes(query) ||
+                              s.parentName.toLowerCase().includes(query);
+        const matchesClass = filterClass === 'all' || s.class === filterClass;
+        return matchesSearch && matchesClass;
+    });
 
     if (filtered.length === 0) {
         container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-magnifying-glass"></i><p>Santri tidak ditemukan.</p></div>`;
@@ -551,7 +607,6 @@ function renderSantriList() {
         const div = document.createElement('div');
         div.className = 'santri-item';
         
-        // Hide edit/delete actions if current role is Guru
         const actionHtml = state.userRole === 'admin' ? `
             <div class="santri-actions">
                 <button class="icon-btn" onclick="openEditSantriModal('${student.id}')" style="background:var(--secondary); width:36px; height:36px; font-size:14px;">
@@ -566,8 +621,8 @@ function renderSantriList() {
             <div>
                 <strong style="font-size:16px;">${student.name} (${student.nickname})</strong>
                 <div style="font-size:12px; color:var(--text-muted); margin-top: 4px;">
-                    <div>Gender: ${student.gender}</div>
-                    <div>Ortu: ${student.parentName} (${student.phone || '-'})</div>
+                    <div>Kelas: <b>${student.class}</b></div>
+                    <div>Gender: ${student.gender} | Ortu: ${student.parentName} (${student.phone || '-'})</div>
                 </div>
             </div>
             ${actionHtml}
@@ -586,6 +641,7 @@ function openEditSantriModal(studentId) {
     document.getElementById('santri-id-edit').value = student.id;
     document.getElementById('santri-name').value = student.name;
     document.getElementById('santri-nickname').value = student.nickname;
+    document.getElementById('santri-class').value = student.class || 'Kelas Cabe Rawit';
     document.getElementById('santri-gender').value = student.gender;
     document.getElementById('santri-parent').value = student.parentName;
     document.getElementById('santri-phone').value = student.phone || '';
@@ -607,18 +663,15 @@ async function deleteSantri(studentId) {
 
         if (supabaseClient) {
             try {
-                await supabaseClient
-                    .from('students')
-                    .delete()
-                    .eq('id', studentId);
+                await supabaseClient.from('students').delete().eq('id', studentId);
             } catch (err) {
-                console.error("Gagal hapus dari Supabase:", err);
+                console.error(err);
             }
         }
     }
 }
 
-// VIEW 4: REKAP & LAPORAN
+// VIEW 5: REKAP & LAPORAN
 function renderHistoryReport() {
     const reportMonth = document.getElementById('report-month').value;
     const tbody = document.getElementById('history-report-body');
@@ -677,7 +730,7 @@ function exportCSV() {
     }
     
     let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Nama Lengkap,Nama Panggilan,Hadir,Sakit,Izin,Alfa,Persentase Kehadiran\n";
+    csvContent += "Nama Lengkap,Nama Panggilan,Kelas,Hadir,Sakit,Izin,Alfa,Persentase Kehadiran\n";
     
     state.students.forEach(student => {
         let presentCount = 0;
@@ -700,7 +753,7 @@ function exportCSV() {
         });
         
         const attendanceRate = totalLoggedDays > 0 ? Math.round((presentCount / totalLoggedDays) * 100) : 0;
-        csvContent += `"${student.name}","${student.nickname}",${presentCount},${sickCount},${leaveCount},${absentCount},${attendanceRate}%\n`;
+        csvContent += `"${student.name}","${student.nickname}","${student.class}",${presentCount},${sickCount},${leaveCount},${absentCount},${attendanceRate}%\n`;
     });
     
     const encodedUri = encodeURI(csvContent);
@@ -735,6 +788,7 @@ function setupModals() {
         document.getElementById('santri-id-edit').value = '';
         document.getElementById('santri-name').value = '';
         document.getElementById('santri-nickname').value = '';
+        document.getElementById('santri-class').value = 'Kelas Cabe Rawit';
         document.getElementById('santri-gender').value = 'Laki-laki';
         document.getElementById('santri-parent').value = '';
         document.getElementById('santri-phone').value = '';
@@ -757,7 +811,9 @@ function setupModals() {
         { btn: 'modal-progress-close', modal: 'modal-progress' },
         { btn: 'modal-progress-cancel', modal: 'modal-progress' },
         { btn: 'modal-db-close', modal: 'modal-db-settings' },
-        { btn: 'modal-db-close-btn', modal: 'modal-db-settings' }
+        { btn: 'modal-db-close-btn', modal: 'modal-db-settings' },
+        { btn: 'modal-materi-close', modal: 'modal-edit-materi' },
+        { btn: 'modal-materi-cancel', modal: 'modal-edit-materi' }
     ];
 
     closeButtons.forEach(cfg => {
@@ -767,6 +823,37 @@ function setupModals() {
                 document.getElementById(cfg.modal).classList.remove('active');
             });
         }
+    });
+
+    // Save Classroom Materi
+    document.getElementById('modal-materi-save').addEventListener('click', async () => {
+        if (state.userRole !== 'admin') return;
+        const id = document.getElementById('edit-class-id').value;
+        const materi = document.getElementById('edit-class-materi').value.trim();
+        
+        const idx = state.classrooms.findIndex(c => c.id === id);
+        if (idx !== -1) {
+            state.classrooms[idx].materi = materi;
+            saveLocalClassrooms();
+            showToast(`Materi ${state.classrooms[idx].name} berhasil diperbarui!`);
+            
+            // Sync with Supabase
+            if (supabaseClient) {
+                try {
+                    await supabaseClient
+                        .from('classrooms')
+                        .upsert({
+                            id: state.classrooms[idx].id,
+                            name: state.classrooms[idx].name,
+                            materi: state.classrooms[idx].materi
+                        });
+                } catch (err) {
+                    console.error("Gagal sinkron materi ke Supabase:", err);
+                }
+            }
+        }
+        document.getElementById('modal-edit-materi').classList.remove('active');
+        renderView(state.currentTab);
     });
 
     // Save Supabase Settings
@@ -806,6 +893,7 @@ function setupModals() {
         const id = document.getElementById('santri-id-edit').value;
         const name = document.getElementById('santri-name').value.trim();
         const nickname = document.getElementById('santri-nickname').value.trim();
+        const studentClass = document.getElementById('santri-class').value;
         const gender = document.getElementById('santri-gender').value;
         const parentName = document.getElementById('santri-parent').value.trim();
         const phone = document.getElementById('santri-phone').value.trim();
@@ -820,7 +908,7 @@ function setupModals() {
         if (id) {
             const idx = state.students.findIndex(s => s.id === id);
             if (idx !== -1) {
-                state.students[idx] = { ...state.students[idx], name, nickname, gender, parentName, phone };
+                state.students[idx] = { ...state.students[idx], name, nickname, class: studentClass, gender, parentName, phone };
                 studentObj = state.students[idx];
             }
             showToast('Data santri berhasil diubah');
@@ -829,6 +917,7 @@ function setupModals() {
                 id: Date.now().toString(),
                 name,
                 nickname,
+                class: studentClass,
                 gender,
                 parentName,
                 phone,
@@ -852,6 +941,7 @@ function setupModals() {
                         id: studentObj.id,
                         name: studentObj.name,
                         nickname: studentObj.nickname,
+                        class: studentObj.class,
                         gender: studentObj.gender,
                         parent_name: studentObj.parentName,
                         phone: studentObj.phone,
@@ -920,8 +1010,10 @@ function setupModals() {
                 if (parsed.students && parsed.attendance) {
                     state.students = parsed.students;
                     state.attendance = parsed.attendance;
+                    if (parsed.classrooms) state.classrooms = parsed.classrooms;
                     
                     saveLocalStudents();
+                    saveLocalClassrooms();
                     saveLocalAttendance();
                     renderView(state.currentTab);
                     document.getElementById('modal-db-settings').classList.remove('active');
@@ -946,6 +1038,20 @@ function setupInputListeners() {
         updateDashboardStats();
         if (state.currentTab === 'presensi') {
             renderPresensiList();
+        }
+    });
+
+    // Listeners for class filter on Presensi Tab
+    document.getElementById('filter-presensi-class').addEventListener('change', () => {
+        if (state.currentTab === 'presensi') {
+            renderPresensiList();
+        }
+    });
+
+    // Listeners for class filter on Santri Tab
+    document.getElementById('filter-santri-class').addEventListener('change', () => {
+        if (state.currentTab === 'santri') {
+            renderSantriList();
         }
     });
 
